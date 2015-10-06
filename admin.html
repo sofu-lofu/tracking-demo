@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="myApp">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>New Tracking Proposal</title>
+  <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+  <script src="https://cdn.firebase.com/js/client/2.2.1/firebase.js"></script>
+  <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js"></script>
+  <script src="https://cdn.firebase.com/libs/angularfire/1.1.3/angularfire.min.js"></script>
+</head>
+<body ng-controller="appController">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+        <h1>Admin Panel<button class="btn btn-danger pull-right" ng-click="resetRoot()">Reset</button></h1>
+        <hr>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-5">
+        <!-- user info -->
+        <h2>Users</h2>
+        <select class="form-control" ng-change="handleChangeUser()" ng-model="selectedUser">
+          <option ng-repeat="user in users" ng-value="user.$id">{{ user.name }}</option>
+        </select>
+        <div class="text-info">
+          <div class="bg-info">
+            <p>Date Registered: {{ dateRegistered | date:"MM/dd/yyyy 'at' h:mm:ssa" }}</p>
+          </div>
+          <div class="bg-info">
+            <p>Net Worth: {{ netWorth }}</p>
+          </div>
+        </div><!-- user info -->
+        
+        <div class="col-md-6">          
+          <h2>Add User</h2>
+          <form role="form" ng-controller="addUserCtrl">
+            <div class="form-group">
+              <label for="username" class="sr-only">Username</label>
+              <input type="text" id="username" class="form-control" placeholder="Username" ng-model="username">
+            </div>
+            <button id="btnAddUser" ng-click="addUser()" type="submit" class="btn btn-primary">Add</button>
+          </form>
+        </div>
+        
+        <div class="col-md-6">
+          <h2>Give eWagans</h2>
+          <form class="form" role="form" ng-controller="giveWagansCtrl">
+            <div class="form-group">
+              <label for="amount" class="sr-only">Amount</label>
+              <input type="number" id="amount" class="form-control text-right" min="1" placeholder="Amount" ng-model="amount">
+            </div>
+            <button id="btnGiveWagans" ng-click="giveWagans()" type="submit" class="btn btn-primary">Give</button>
+          </form>
+        </div>        
+      </div><!-- left panel -->
+      
+      <div class="col-md-7">
+        <h2>Transfer Amount</h2>
+        <form role="form" name="myForm" ng-controller="transferCtrl" novalidate>
+          <div class="form-group">
+            <label class="control-label">From</label>
+            <select class="form-control" ng-model="fromUser">
+              <option ng-repeat="user in users" ng-value="user.$id">{{ user.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="control-label">To</label>
+            <select class="form-control" ng-model="toUser">
+              <option ng-repeat="user in users" ng-value="user.$id">{{ user.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="amount" >Amount</label>
+            <input type="number" class="form-control text-right" id="amount" name="amount" placeholder="Amount" min="1" ng-model="amount">
+          </div>
+          <button id="btnTransfer" ng-click="transfer()" type="submit" class="btn btn-primary">Transfer</button>
+        </form>
+        
+        <h2>Transactions</h2>
+        <table class="table table-striped tabled-hover table-bordered table-condensed">
+          <thead>
+            <tr>
+              <th>Serial</th>
+              <th>Date</th>
+              <th>FromUser</th>
+              <th>ToUser</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="entry in transactions">
+              <td>{{ entry.serial }}</td>
+              <td>{{ entry.timestamp | date:"MM/dd/yyyy 'at' h:mm:ssa" }}</td>
+              <td>{{ entry.fromUser }}</td>
+              <td>{{ entry.toUser }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div><!-- right panel -->
+    </div>
+  </div>
+  
+  <script>
+    var rootRef = new Firebase('https://trackingtest.firebaseio.com');
+    var usersRef = rootRef.child('users');
+    var eWagans = rootRef.child('eWagans');
+    var netWorth = rootRef.child('netWorth');
+    var transactions = rootRef.child('transactions');
+    var serials = rootRef.child('serials');
+    
+    $(function() {
+      angular.module('myApp', ['firebase'])
+      .controller('appController', ['$scope', '$firebaseArray', function($scope, $firebaseArray) {
+        $scope.users = $firebaseArray(usersRef);
+        $scope.transactions = $firebaseArray(transactions);
+        $scope.selectedUser = null;
+        
+        $scope.$watch('selectedUser', function(newVal, oldVal) {
+          if (newVal !== oldVal) {
+            $scope.dateRegistered = $scope.users.$getRecord(newVal).dateRegistered;
+            netWorth.child(newVal).once('value', function(snap) {
+              $scope.netWorth = snap.numChildren();
+              $scope.$digest();
+            });
+          }
+        });
+        
+        $scope.resetRoot = function() {
+          $scope.dateRegistered = null;
+          $scope.netWorth = null;
+          rootRef.set({});
+        };
+        /*
+        $scope.users.$loaded().then(function() { console.log($scope.users); });
+        $scope.transactions.$loaded().then(function() { console.log($scope.transactions); });
+        $scope.userWagans.$loaded().then(function() { console.log($scope.userWagans); });
+        */
+      }])
+      .controller('addUserCtrl', ['$scope', function($scope) { 
+        $scope.addUser = function() {
+          var userid = null;
+          $scope.users.$add({
+            "name": $scope.username,
+            "dateRegistered": Firebase.ServerValue.TIMESTAMP
+          });
+          $scope.username = null;
+        };
+      }])
+      .controller('giveWagansCtrl', ['$scope', function($scope) {
+        $scope.giveWagans = function() {
+          if ($scope.selectedUser) {
+            serials.limitToFirst($scope.amount).once('value', function(snap) {
+              snap.forEach(function(childSnap) {
+                eWagans.child(childSnap.val()).update({
+                  "birthDate": Firebase.ServerValue.TIMESTAMP,
+                  "status": "alive"
+                });
+                netWorth.child($scope.selectedUser).child(childSnap.val()).set(true);
+                serials.child(childSnap.key()).remove();
+              });
+              
+              netWorth.child($scope.selectedUser).once('value', function(snap) {
+                $scope.$parent.netWorth = snap.numChildren();
+                $scope.$parent.$digest();
+              });
+            });
+          }
+          $scope.amount = null;
+        };
+      }])
+      .controller('transferCtrl', ['$scope', function($scope) {
+        $scope.transfer = function() {
+          var fromBank = netWorth.child($scope.fromUser);
+          var toBank = netWorth.child($scope.toUser);
+          
+          var server_time = null;
+          rootRef.child('.info/serverTimeOffset').once('value', function(snap) {
+            server_time = new Date().getTime() + snap.val();
+          });
+          fromBank.limitToFirst($scope.amount).once('value', function(snap) {
+            snap.forEach(function(childSnap) {
+              transactions.push({
+                "serial": childSnap.key(),
+                "timestamp": server_time,
+                "fromUser": $scope.fromUser,
+                "toUser": $scope.toUser
+              });
+              toBank.child(childSnap.key()).set(true);
+              fromBank.child(childSnap.key()).remove();
+            });
+          });
+          $scope.amount = null;
+        };
+      }]);
+    }());
+    
+  </script>
+</body>
+</html>

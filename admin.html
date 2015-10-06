@@ -17,6 +17,9 @@
       <div class="col-md-12">
         <h1>Admin Panel<button class="btn btn-danger pull-right" ng-click="resetRoot()">Reset</button></h1>
         <hr>
+        <div class="bg-info">
+          <p>After every reset, generate serials first.</p>
+        </div>
       </div>
     </div>
     <div class="row">
@@ -67,6 +70,13 @@
               <button type="button" class="btn btn-primary" ng-click="generateSerials()">Generate</button>
             </div>
           </form>
+          
+          <h3>Serials generated</h3>
+          <ul class="list-group pre-scrollable" style="max-height: 200px">
+            <li class="list-group-item" ng-repeat="serial in serials">
+              {{ serial.$value }}
+            </li>
+          </ul>
         </div>
       </div><!-- left panel -->
       

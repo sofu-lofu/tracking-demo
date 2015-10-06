@@ -55,7 +55,19 @@
             </div>
             <button id="btnGiveWagans" ng-click="giveWagans()" type="submit" class="btn btn-primary">Give</button>
           </form>
-        </div>        
+        </div>     
+
+        <div class="col-md-12 ng-controller="serialsController">
+          <h2>Set serials</h2>
+          <p><button type="button" class="btn btn-danger" ng-click="resetSerials()">Reset Serials</button></p>
+          <form name="form" class="form-inline" role="form" novalidate>
+            <div class="form-group">
+              <label class="sr-only" for="amount">Amount</label>
+              <input id="amount" type="number" class="form-control text-right" min="1" placeholder="Amount" ng-model="amount">
+              <button type="button" class="btn btn-primary" ng-click="generateSerials()">Generate</button>
+            </div>
+          </form>
+        </div>
       </div><!-- left panel -->
       
       <div class="col-md-7">
@@ -104,6 +116,7 @@
   </div>
   
   <script>
+    var SERIAL_BASE = "10000076JLPTJ";
     var rootRef = new Firebase('https://trackingtest.firebaseio.com');
     var usersRef = rootRef.child('users');
     var eWagans = rootRef.child('eWagans');
@@ -193,6 +206,19 @@
             });
           });
           $scope.amount = null;
+        };
+      }])
+      .controller('serialsController', ['$scope', '$firebaseArray', function($scope,$firebaseArray) {
+        $scope.serials = $firebaseArray(serialsRef);
+        $scope.resetSerials = function() {
+          serialsRef.set({});
+        };
+        $scope.generateSerials = function() {
+          $scope.resetSerials();
+          for (var n=0; n < $scope.amount; n++) {
+            $scope.serials.$add(SERIAL_BASE + n);
+          }
+          $scope.amount = 1;
         };
       }]);
     }());

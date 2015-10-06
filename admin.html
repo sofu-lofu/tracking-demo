@@ -209,9 +209,9 @@
         };
       }])
       .controller('serialsController', ['$scope', '$firebaseArray', function($scope,$firebaseArray) {
-        $scope.serials = $firebaseArray(serialsRef);
+        $scope.serials = $firebaseArray(serials);
         $scope.resetSerials = function() {
-          serialsRef.set({});
+          serials.set({});
         };
         $scope.generateSerials = function() {
           $scope.resetSerials();
